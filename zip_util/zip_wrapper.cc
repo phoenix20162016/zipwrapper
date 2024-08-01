@@ -1,4 +1,5 @@
 #include "zip_util/zip_wrapper.h"
+#include <sys/stat.h>
 #include <memory>
 #include <algorithm>
 #include <vector>
@@ -43,16 +44,22 @@ retcode ZipWrapper::AddFolderToZip(const std::filesystem::path& folder_path,
       std::string filename = PathToMiniZipFormat(entry.path().filename());
       std::string entryName = folder_name + filename;
       zip_fileinfo zinfo = {};
-      std::cout << "file_name: " << filename << "\n";
-      // auto time_point = entry.last_write_time();
-      // auto tm_t = std::chrono::system_clock::to_time_t(time_point);
-      // auto* tm = std::gmtime(&tm_t);
-      // zinfo.tmz_date.tm_year = tm->tm_year + 1900;
-      // zinfo.tmz_date.tm_mon = tm->tm_mon + 1;
-      // zinfo.tmz_date.tm_mday = tm->tm_mday;
-      zinfo.tmz_date.tm_year = 2024;
-      zinfo.tmz_date.tm_mon = 7;
-      zinfo.tmz_date.tm_mday = 29;
+      std::cout << "file_name: " << filename << " "
+          << "entryName: " << entryName << "\n";
+      auto path_info = entry.path().c_str();
+      struct stat file_info;
+      if (stat(path_info, &file_info) == -1) {
+        LOG(ERROR) << "stat" << ENDL;
+        return retcode::FAIL;
+      }
+      struct tm* last_modified = std::gmtime(&file_info.st_mtime);
+      // LOG(INFO) << "file info: " << path_info << " "
+      //     << "year: " << last_modified->tm_year + 1900 << " "
+      //     << "month: " << last_modified->tm_mon + 1 << " "
+      //     << "day: " << last_modified->tm_mday;
+      zinfo.tmz_date.tm_year = last_modified->tm_year + 1900;
+      zinfo.tmz_date.tm_mon = last_modified->tm_mon + 1;
+      zinfo.tmz_date.tm_mday = last_modified->tm_mday;
       zinfo.dosDate = 0;
       zinfo.internal_fa = 0;
       zinfo.external_fa = 0;
